@@ -52,9 +52,14 @@ def logs():
 def twiml_incident(incident_id: str):
 	tier = int(request.args.get("tier", "1"))
 	phone = request.args.get("phone", "")
+	msg = request.args.get("message")
+	if not msg:
+		from call_flow import STATE
+		s = STATE.get(incident_id) or {}
+		msg = s.get("message") or "Incident alert."
 	vr = VoiceResponse()
 	gather = Gather(num_digits=1, action=url_for("twiml_ack", incident_id=incident_id, tier=tier, phone=phone, _external=True), timeout=Config.AUTO_ACK_TIMEOUT_SEC)
-	gather.say(f"Incident for team. Message: {request.args.get('message', 'Please acknowledge')}. Press 1 to acknowledge.")
+	gather.say(f"Incident for {tier} tier. Message: {msg}. Press 1 to acknowledge.")
 	vr.append(gather)
 	vr.say("No input received. Goodbye.")
 	return str(vr)
@@ -78,13 +83,9 @@ def twiml_ack(incident_id: str):
 @app.route("/twiml/manual/start/<incident_id>", methods=["POST", "GET"])
 def twiml_manual_start(incident_id: str):
 	tier = int(request.args.get("tier", "1"))
-	# Build dynamic menu for the tier's phone numbers
-	from roster import get_roster_tiers
-	numbers = []
-	# In a real system we would fetch state; to keep it simple, ask for index 1..N and then redirect
 	vr = VoiceResponse()
 	gather = Gather(num_digits=1, action=url_for("twiml_manual_select", incident_id=incident_id, tier=tier, _external=True))
-	gather.say(f"Manual escalation tier {tier}. Press 1 to call first contact, 2 for second, 3 for third.")
+	gather.say(f"Manual escalation tier {tier}. Press 1 to call first contact, 2 for second, 3 for third. For simulation, press 9 to place a quick test call and hang up.")
 	vr.append(gather)
 	vr.say("No input received. Goodbye.")
 	return str(vr)
@@ -96,6 +97,10 @@ def twiml_manual_select(incident_id: str):
 	tier = int(request.args.get("tier", "1"))
 	digit = request.form.get("Digits", "")
 	vr = VoiceResponse()
+	if digit == "9":
+		vr.say("Placing test call then hanging up.")
+		vr.hangup()
+		return str(vr)
 	# Map digit to phone in that tier
 	# We assume 1..N maps to the list order
 	s = call_state(incident_id)
