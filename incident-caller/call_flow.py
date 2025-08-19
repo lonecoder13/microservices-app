@@ -3,6 +3,7 @@ import uuid
 from typing import List, Dict
 from threading import Thread, Lock
 from flask import url_for
+from urllib.parse import quote_plus
 
 from config import Config
 from roster import get_roster_tiers
@@ -59,7 +60,7 @@ def _run_automated(incident_id: str):
 					to=phone,
 					from_=Config.TWILIO_FROM_NUMBER,
 					url=_twiml_url(
-						f"/twiml/incident/{incident_id}?tier={tier_index}&phone={phone}"
+						f"/twiml/incident/{incident_id}?tier={tier_index}&phone={phone}&message={quote_plus(s.get('message',''))}"
 					),
 				)
 				add_call_attempt(incident_id, tier_index, phone, result="Dialed", response="")
@@ -112,4 +113,3 @@ def handle_acknowledge(incident_id: str, tier: int, phone: str):
 			STATE[incident_id]["current_tier"] = tier
 	add_call_attempt(incident_id, tier, phone, result="Responded", response="ACK")
 	update_incident_status(incident_id, "ACKED")
-
