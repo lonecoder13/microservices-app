@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+	<h2>Trigger Incident</h2>
+	<form method="POST" action="/trigger">
+		<label>Project
+			<select name="project" id="project-select">
+				{% for p in projects %}
+				<option value="{{p}}">{{p}}</option>
+				{% endfor %}
+			</select>
+		</label>
+		<label>Team
+			<select name="team" id="team-select"></select>
+		</label>
+		<label>Message
+			<input type="text" name="message" placeholder="Describe the incident" required>
+		</label>
+		<label>Priority
+			<select name="priority">
+				<option>P1</option>
+				<option selected>P2</option>
+				<option>P3</option>
+			</select>
+		</label>
+		<label>Call Type
+			<select name="call_type">
+				<option value="AUTOMATED" selected>Automated</option>
+				<option value="MANUAL">Manual</option>
+			</select>
+		</label>
+		<input type="hidden" name="triggered_by" value="web">
+		<button type="submit">Start</button>
+	</form>
+</section>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+	const p = document.getElementById('project-select');
+	const t = document.getElementById('team-select');
+	async function loadTeams(){
+		const res = await fetch(`/teams?project=${encodeURIComponent(p.value)}`);
+		const data = await res.json();
+		t.innerHTML = '';
+		(data.teams||[]).forEach(team => {
+			const opt = document.createElement('option');
+			opt.value = team; opt.textContent = team; t.appendChild(opt);
+		});
+	}
+	p.addEventListener('change', loadTeams);
+	loadTeams();
+});
+</script>
+{% endblock %}
+
